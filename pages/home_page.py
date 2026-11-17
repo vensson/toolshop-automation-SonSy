@@ -3,7 +3,8 @@ import re
 
 from pages.base_page import BasePage
 
-# PROD loads the grid with "QUERY /products", BUGGY with "GET /products?...". Not /products/search.
+# PROD uses QUERY /products.
+# BUGGY uses GET /products?... .
 PRODUCT_LIST = re.compile(r"/products(\?.*)?$")
 
 
@@ -13,34 +14,40 @@ class HomePage(BasePage):
     def __init__(self, page):
         super().__init__(page)
 
+        # Search
         self.search_box = page.get_by_test_id("search-query")
-        self.search_result_count = page.get_by_test_id("search-result-count")
-
-        # B1.1: Search
+        self.search_result_count = page.get_by_test_id(
+            "search-result-count"
+        )
         self.search_button = page.get_by_test_id("search-submit")
         self.search_caption = page.get_by_test_id("search-caption")
-        self.search_completed = page.get_by_test_id("search_completed")
+        self.search_completed = page.get_by_test_id(
+            "search_completed"
+        )
+
+        # Products
         self.product_names = page.get_by_test_id("product-name")
-
-        # B1.2: No results
-        self.no_results = page.get_by_test_id("no-results")
-
-        # B1.7: Sort products
-        self.sort_select = page.get_by_test_id("sort")
-        self.sorting_completed = page.get_by_test_id("sorting_completed")
         self.product_prices = page.get_by_test_id("product-price")
 
-        # TODO B2/B4 (later): price_slider_max = page.get_by_role("slider").nth(1)
+        # No results
+        self.no_results = page.get_by_test_id("no-results")
+
+        # Sorting
+        self.sort_select = page.get_by_test_id("sort")
+        self.sorting_completed = page.get_by_test_id(
+            "sorting_completed"
+        )
+
+        # Category filter
+        self.category_hammer = page.get_by_label(
+            "Hammer", exact=True
+        )
 
     def open(self):
-        """Return only after the first product list has arrived.
-
-        Race in Toolshop: if you search before the initial list arrives,
-        the late initial list overwrites the search results.
-        Waiting for that response is synchronisation, not an assertion.
-        """
+        """Open home and wait for the initial product API response."""
         with self.page.expect_response(
-            lambda r: PRODUCT_LIST.search(r.url) is not None
+            lambda response:
+                PRODUCT_LIST.search(response.url) is not None
         ):
             super().open()
 
@@ -52,14 +59,26 @@ class HomePage(BasePage):
         return self
 
     def sort_by(self, value: str):
-        """value: name,asc | name,desc | price,asc | price,desc"""
+        """Sort using name/price and asc/desc."""
         self.sort_select.select_option(value)
         return self
 
+    def filter_hammers(self):
+        """Select Hammer category and wait for the API response."""
+        with self.page.expect_response(
+            lambda response:
+                PRODUCT_LIST.search(response.url) is not None
+                and response.status == 200
+        ):
+            self.category_hammer.check()
+
+        return self
+
     def product_card(self, name: str):
-        # Exact name match: "Pliers" must not match "Combination Pliers".
         return self.product_names.filter(
-            has_text=re.compile(rf"^\s*{re.escape(name)}\s*$")
+            has_text=re.compile(
+                rf"^\s*{re.escape(name)}\s*$"
+            )
         )
 
     def open_product(self, name: str):
@@ -70,6 +89,6 @@ class HomePage(BasePage):
 
     def prices(self) -> list[float]:
         return [
-            float(p.replace("$", ""))
-            for p in self.product_prices.all_inner_texts()
+            float(price.replace("$", "").replace(",", ""))
+            for price in self.product_prices.all_inner_texts()
         ]
