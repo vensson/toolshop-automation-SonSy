@@ -42,5 +42,6 @@ Workflow CI thực hiện kiểm thử trên 3 trình duyệt:
 ![Trace Viewer](docs/screenshots/trace-viewer.png)
 
 ## Pull Request
+<img width="1175" height="407" alt="image" src="https://github.com/user-attachments/assets/1016c4fc-91ad-451d-b13b-71b19b58543b" />
 
 [Sprint 2B - BDD and CI workflow (#3)](https://github.com/vensson/toolshop-automation-SonSy/pull/3)
