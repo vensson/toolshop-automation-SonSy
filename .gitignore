@@ -7,3 +7,4 @@ playwright-report/
 report*.html
 .env
 .vscode/mcp.json
+
